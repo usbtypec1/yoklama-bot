@@ -4,8 +4,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 
-from src.database_gateway import get_database_connection, DatabaseGateway
-from src.obis import create_http_client, ObisClient, ObisClientNotLoggedInError
+from database_gateway import get_database_connection, DatabaseGateway
+from obis import create_http_client, ObisClient, ObisClientNotLoggedInError
 
 
 router = Router(name=__name__)

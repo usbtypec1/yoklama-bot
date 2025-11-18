@@ -2,11 +2,11 @@ import asyncio
 
 import httpx
 
-from src.database_gateway import (
+from database_gateway import (
     DatabaseGateway, get_database_connection,
     Lesson,
 )
-from src.obis import (
+from obis import (
     create_http_client, ObisClient,
     ObisClientNotLoggedInError, compare_lessons, LessonSkippingOpportunity,
     compute_lesson_skipping_opportunities,

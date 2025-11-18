@@ -1,12 +1,12 @@
 import contextlib
-from collections.abc import Generator, AsyncGenerator
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from typing import Callable, NewType
 
 import httpx
 from bs4 import BeautifulSoup
 
-from src.database_gateway import Lesson
+from database_gateway import Lesson
 
 
 ObisHttpClient = NewType("ObisHttpClient", httpx.AsyncClient)
