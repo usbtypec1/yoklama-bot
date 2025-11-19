@@ -48,6 +48,7 @@ async def on_view_yoklama_command(message: Message) -> None:
         )
         return
 
+    message = await message.answer("Загрузка вашей йокламы...")
     async with create_http_client() as http_client:
         obis_client = ObisClient(
             student_number=user.student_number, password=user.password,
@@ -57,9 +58,8 @@ async def on_view_yoklama_command(message: Message) -> None:
         try:
             lessons = await obis_client.get_taken_lessons_page()
         except ObisClientNotLoggedInError:
-            await message.answer(
+            await message.edit_text(
                 "Не удалось войти в OBIS с предоставленными данными. Пожалуйста, проверьте их и попробуйте снова.",
-                reply_markup=MAIN_MENU,
             )
             return
 
@@ -74,7 +74,7 @@ async def on_view_yoklama_command(message: Message) -> None:
 
         if not text:
             text = "У вас нет предметов."
-        await message.answer(text.strip(), reply_markup=MAIN_MENU)
+        await message.edit_text(text.strip())
 
 
 @router.message(F.text, StateFilter(CredentialsStates.obis_password))
