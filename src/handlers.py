@@ -3,13 +3,17 @@ from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import (
-    Message, ReplyKeyboardMarkup, KeyboardButton,
+    Message,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
     ReplyKeyboardRemove,
 )
 
 from database_gateway import get_database_connection, DatabaseGateway
 from obis import (
-    create_http_client, ObisClient, ObisClientNotLoggedInError,
+    create_http_client,
+    ObisClient,
+    ObisClientNotLoggedInError,
     compute_lesson_skipping_opportunities,
 )
 
@@ -21,11 +25,12 @@ MAIN_MENU = ReplyKeyboardMarkup(
     is_persistent=True,
     keyboard=[
         [
-            KeyboardButton(text="Посмотреть йокламу"),
+            KeyboardButton(text="Моя йоклама"),
+            KeyboardButton(text="Экзамены"),
         ],
         [
             KeyboardButton(text="Ввести данные от OBIS"),
-        ]
+        ],
     ],
 )
 
@@ -35,7 +40,48 @@ class CredentialsStates(StatesGroup):
     obis_password = State()
 
 
-@router.message(F.text == "Посмотреть йокламу")
+@router.message(F.text == "Экзамены")
+async def on_view_exams_command(message: Message) -> None:
+    with get_database_connection() as connection:
+        gateway = DatabaseGateway(connection)
+        user = gateway.get_user_by_id(message.from_user.id)
+
+    if user is None:
+        await message.answer(
+            "Пожалуйста, для начала введите ваши данные от OBIS.",
+            reply_markup=MAIN_MENU,
+        )
+        return
+
+    message = await message.answer("Загрузка ваших экзаменов...")
+    async with create_http_client() as http_client:
+        obis_client = ObisClient(
+            student_number=user.student_number,
+            password=user.password,
+            http_client=http_client,
+        )
+        await obis_client.login()
+        try:
+            lessons_with_exams = await obis_client.get_exams_page()
+        except ObisClientNotLoggedInError:
+            await message.edit_text(
+                "Не удалось войти в OBIS с предоставленными данными. Пожалуйста, проверьте их и попробуйте снова.",
+            )
+            return
+
+        text = ""
+        for lesson in lessons_with_exams:
+            text += f"<b>{lesson.lesson_name} ({lesson.lesson_code})</b>\n"
+            for exam in lesson.exams:
+                text += f" - {exam.name}: {exam.score or ''}\n"
+            text += "\n"
+
+        if not text:
+            text = "У вас нет оценок за экзамены."
+        await message.edit_text(text.strip())
+
+
+@router.message(F.text == "Йоклама")
 async def on_view_yoklama_command(message: Message) -> None:
     with get_database_connection() as connection:
         gateway = DatabaseGateway(connection)
@@ -51,7 +97,8 @@ async def on_view_yoklama_command(message: Message) -> None:
     message = await message.answer("Загрузка вашей йокламы...")
     async with create_http_client() as http_client:
         obis_client = ObisClient(
-            student_number=user.student_number, password=user.password,
+            student_number=user.student_number,
+            password=user.password,
             http_client=http_client,
         )
         await obis_client.login()
@@ -63,7 +110,7 @@ async def on_view_yoklama_command(message: Message) -> None:
             )
             return
 
-        text = ''
+        text = ""
         for lesson in lessons:
             skipping = compute_lesson_skipping_opportunities(lesson)
             text += (
@@ -89,7 +136,8 @@ async def on_obis_password_entered(
 
     async with create_http_client() as http_client:
         obis_client = ObisClient(
-            student_number=student_number, password=obis_password,
+            student_number=student_number,
+            password=obis_password,
             http_client=http_client,
         )
         await obis_client.login()
@@ -111,7 +159,8 @@ async def on_obis_password_entered(
         )
 
     await message.answer(
-        "Ваши данные от OBIS успешно сохранены.", reply_markup=MAIN_MENU,
+        "Ваши данные от OBIS успешно сохранены.",
+        reply_markup=MAIN_MENU,
     )
 
 
@@ -129,7 +178,8 @@ async def on_student_number_entered(
 async def on_credentials_command(message: Message, state: FSMContext) -> None:
     await state.set_state(CredentialsStates.student_number)
     await message.answer(
-        "Введите ваш студ.номер:", reply_markup=ReplyKeyboardRemove(),
+        "Введите ваш студ.номер:",
+        reply_markup=ReplyKeyboardRemove(),
     )
 
 

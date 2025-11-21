@@ -31,6 +31,12 @@ def get_database_connection() -> Generator[sqlite3.Connection, None, None]:
 @dataclass(slots=True, frozen=True)
 class DatabaseGateway:
     connection: sqlite3.Connection
+    
+    def get_user_ids(self) -> list[int]:
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT id FROM users;")
+        rows = cursor.fetchall()
+        return [row[0] for row in rows]
 
     def get_user_by_id(self, user_id: int) -> UserWithCredentials | None:
         cursor = self.connection.cursor()

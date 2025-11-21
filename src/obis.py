@@ -43,13 +43,71 @@ class LessonSkippingOpportunity:
     practice: int | None
 
 
+@dataclass(slots=True, kw_only=True, frozen=True)
+class Exam:
+    name: str
+    score: str | None
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
+class LessonExams:
+    lesson_name: str
+    lesson_code: str
+    exams: list[Exam]
+
+
+def parse_taken_grades_page(text: str) -> list[LessonExams]:
+    soup = BeautifulSoup(text, "lxml")
+    tbodies = soup.find_all("tbody")
+    if not tbodies:
+        return []
+
+    tbody = tbodies[-1]
+    rows = tbody.find_all("tr", recursive=False)
+
+    lessons: list[LessonExams] = []
+    i = 0
+    exams: list[Exam] = []
+    lesson_code = None
+    lesson_name = None
+
+    while i < len(rows):
+        main_row = rows[i]
+        tds = main_row.find_all("td", recursive=False)
+
+        # only the "main" row contains >=5 tds (index, code, name, exam, score)
+        if len(tds) == 5:
+            print(exams)
+            if exams:
+                lessons.append(
+                    LessonExams(
+                        lesson_name=lesson_name, lesson_code=lesson_code, exams=exams
+                    )
+                )
+                exams = []
+
+            lesson_code = tds[1].get_text(strip=True) or None
+            lesson_name = tds[2].get_text(strip=True) or None
+
+            exam_name = tds[3].get_text(strip=True) or None
+            score = tds[4].get_text(strip=True) or None
+            exams.append(Exam(name=exam_name, score=score))
+        elif len(tds) == 2:
+            print(exams)
+            exam_name = tds[0].get_text(strip=True) or None
+            score = tds[1].get_text(strip=True) or None
+            exams.append(Exam(name=exam_name, score=score))
+
+        i += 1
+
+    return lessons
+
+
 def compute_lesson_skipping_opportunities(
     lesson: Lesson,
 ) -> LessonSkippingOpportunity:
     if lesson.theory_skipped_classes_percentage is not None:
-        diff = (
-            THREORY_SKIPS_THRESHOLD - lesson.theory_skipped_classes_percentage
-        )
+        diff = THREORY_SKIPS_THRESHOLD - lesson.theory_skipped_classes_percentage
         if diff == SKIP_PERCENTAGE_PER_LESSON:
             theory_skippable_lessons_count = 0
         else:
@@ -59,10 +117,7 @@ def compute_lesson_skipping_opportunities(
     else:
         theory_skippable_lessons_count = None
     if lesson.practice_skipped_classes_percentage is not None:
-        diff = (
-            PRACTICE_SKIPS_THRESHOLD
-            - lesson.practice_skipped_classes_percentage
-        )
+        diff = PRACTICE_SKIPS_THRESHOLD - lesson.practice_skipped_classes_percentage
         if diff == SKIP_PERCENTAGE_PER_LESSON:
             practice_skippable_lessons_count = 0
         else:
@@ -136,6 +191,12 @@ class ObisClient:
             self.is_logged_in = True
 
     @login_required
+    async def get_taken_grades_page(self) -> list[LessonExams]:
+        url = "/vs-ders/taken-grades"
+        response = await self.http_client.get(url)
+        return parse_taken_grades_page(response.text)
+
+    @login_required
     async def get_taken_lessons_page(self) -> list[Lesson]:
         url = "/vs-ders/taken-lessons"
         response = await self.http_client.get(url)
@@ -166,5 +227,3 @@ class ObisClient:
             )
             lessons.append(lesson)
         return lessons
-
-
