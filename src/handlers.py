@@ -62,7 +62,7 @@ async def on_view_exams_command(message: Message) -> None:
         )
         await obis_client.login()
         try:
-            lessons_with_exams = await obis_client.get_exams_page()
+            lessons_with_exams = await obis_client.get_taken_grades_page()
         except ObisClientNotLoggedInError:
             await message.edit_text(
                 "Не удалось войти в OBIS с предоставленными данными. Пожалуйста, проверьте их и попробуйте снова.",
