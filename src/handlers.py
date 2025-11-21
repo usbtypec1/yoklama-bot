@@ -25,7 +25,7 @@ MAIN_MENU = ReplyKeyboardMarkup(
     is_persistent=True,
     keyboard=[
         [
-            KeyboardButton(text="Моя йоклама"),
+            KeyboardButton(text="Йоклама"),
             KeyboardButton(text="Экзамены"),
         ],
         [
