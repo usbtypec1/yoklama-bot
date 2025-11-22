@@ -1,0 +1,2 @@
+class ObisClientNotLoggedInError(Exception):
+    pass
