@@ -10,7 +10,7 @@ from obis.models import LessonAttendance
 
 
 DATABASE_PATH: Final[pathlib.Path] = (
-    pathlib.Path(__file__).parents[3] / "database.db"
+    pathlib.Path(__file__).parents[2] / "database.db"
 )
 
 
@@ -163,13 +163,14 @@ class DatabaseGateway:
     async def get_last_lessons_attendance(self, lesson_code: str,
                                           user_id: int) -> LessonAttendance | None:
         query = """
-                SELECT lesson_code,
-                       lesson_name,
-                       theory_skips_percentage,
-                       practice_skips_percentage
-                FROM lessons_attendance
-                WHERE lesson_code = ?
-                  AND user_id = ?
+                SELECT la.lesson_code,
+                       l.name,
+                       la.theory_skips_percentage,
+                       la.practice_skips_percentage
+                FROM lessons_attendance la
+                         JOIN lessons l ON l.code = la.lesson_code
+                WHERE la.lesson_code = ?
+                  AND la.user_id = ?
                 ORDER BY created_at DESC LIMIT 1 \
                 """
         params = (lesson_code, user_id)
@@ -190,6 +191,15 @@ class DatabaseGateway:
         user_id: int,
     ) -> None:
         query = """
+                INSERT
+                OR IGNORE INTO lessons
+                (code, name)
+                VALUES (?, ?);"""
+        params = (lesson_attendance.lesson_code,
+                  lesson_attendance.lesson_name)
+        await self.__connection.execute(query, params)
+        await self.__connection.commit()
+        query = """
                 INSERT INTO lessons_attendance
                 (lesson_code,
                  user_id,
@@ -203,6 +213,17 @@ class DatabaseGateway:
             lesson_attendance.theory_skips_percentage,
             lesson_attendance.practice_skips_percentage,
         )
+        await self.__connection.execute(query, params)
+        await self.__connection.commit()
+
+    async def clear_user_credentials(self, user_id: int) -> None:
+        query = """
+                UPDATE users
+                SET student_number     = NULL,
+                    encrypted_password = NULL
+                WHERE id = ?;
+                """
+        params = (user_id,)
         await self.__connection.execute(query, params)
         await self.__connection.commit()
 

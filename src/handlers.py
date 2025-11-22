@@ -138,7 +138,10 @@ async def on_view_yoklama_command(
         await message.edit_text(text.strip())
 
 
-@router.message(F.text, StateFilter(CredentialsStates.obis_password))
+@router.message(
+    F.text, F.text != "Ввести данные от OBIS",
+    StateFilter(CredentialsStates.obis_password),
+)
 async def on_obis_password_entered(
     message: Message,
     state: FSMContext,
@@ -174,12 +177,15 @@ async def on_obis_password_entered(
     )
 
 
-@router.message(F.text, StateFilter(CredentialsStates.student_number))
+@router.message(
+    F.text, F.text != "Ввести данные от OBIS",
+    StateFilter(CredentialsStates.student_number),
+)
 async def on_student_number_entered(
     message: Message,
     state: FSMContext,
 ) -> None:
-    await state.update_data(student_number=message.text)
+    await state.update_data(student_number=message.text.removesuffix("@manas.edu.kg"))
     await state.set_state(CredentialsStates.obis_password)
     await message.answer("✏️ Введите ваш пароль от OBIS:")
 

@@ -27,6 +27,9 @@ async def main() -> None:
             parse_mode=ParseMode.HTML,
         ),
     )
+    password_cryptor = PasswordCryptor(
+        settings.cryptography.secret_key.get_secret_value(),
+    )
     await bot.set_my_commands([
         BotCommand(command="start", description="📲 Главное меню")
     ])
@@ -37,9 +40,7 @@ async def main() -> None:
     )
 
     dispatcher = Dispatcher()
-    dispatcher["password_cryptor"] = PasswordCryptor(
-        settings.cryptography.secret_key.get_secret_value(),
-    )
+    dispatcher["password_cryptor"] = password_cryptor
     dispatcher.include_router(router)
 
     await dispatcher.start_polling(bot)

@@ -55,7 +55,7 @@ class ObisClient:
             "LoginForm[password_hash]": self.password,
         }
         response = await self.http_client.post(url, data=request_data)
-        if response.is_error:
+        if '/site/login' in response.text or response.is_error:
             logger.error(
                 "ObisClient login: login failed for student number %s",
                 self.student_number,

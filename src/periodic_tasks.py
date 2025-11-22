@@ -1,31 +1,46 @@
 import asyncio
+import logging
 
 from aiogram import Bot
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramAPIError
 
+from crypto import PasswordCryptor
 from db.gateway import create_database_gateway
+from exceptions import ObisClientNotLoggedInError
 from formatters import format_lesson_attendance_change
 from obis.gateway import create_obis_client
 from obis.models import LessonAttendance
 from obis.services import compute_lesson_skip_opportunities
 
 
+logger = logging.getLogger(__name__)
+
+
 class LessonAttendanceCheckTask:
 
-    def __init__(self, bot: Bot):
+    def __init__(self, bot: Bot, password_cryptor: PasswordCryptor):
         self.__bot = bot
+        self.__password_cryptor = password_cryptor
 
     async def execute(self) -> None:
         async with create_database_gateway() as database_gateway:
             users = await database_gateway.get_users_with_credentials()
 
         for user in users:
+            logger.info("Checking lesson attendance for user %s", user.id)
             async with create_obis_client(
                 student_number=user.student_number,
-                password=user.encrypted_password,
+                password=self.__password_cryptor.decrypt(user.encrypted_password),
             ) as obis_client:
-                await obis_client.login()
+                try:
+                    await obis_client.login()
+                except ObisClientNotLoggedInError:
+                    async with create_database_gateway() as database_gateway:
+                        database_gateway.clear_user_credentials(user.id)
+                    logger.warning("Could not log in to Obis for user %s", user.id)
+                    continue
+
                 attendance_list = await obis_client.get_lessons_attendance_list()
 
             old_and_new_attendance_list: list[
@@ -42,9 +57,10 @@ class LessonAttendanceCheckTask:
                             user_id=user.id,
                             lesson_attendance=lesson_attendance,
                         )
-                        old_and_new_attendance_list.append(
-                            (previous_attendance, lesson_attendance),
-                        )
+                        if previous_attendance is not None:
+                            old_and_new_attendance_list.append(
+                                (previous_attendance, lesson_attendance),
+                            )
 
             if old_and_new_attendance_list:
                 for old_attendance, new_attendance in old_and_new_attendance_list:
