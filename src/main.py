@@ -35,7 +35,7 @@ async def main() -> None:
     ])
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
-        LessonAttendanceCheckTask(bot=bot).execute,
+        LessonAttendanceCheckTask(bot=bot, password_cryptor=password_cryptor).execute,
         IntervalTrigger(minutes=15),
     )
 
