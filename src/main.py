@@ -1,5 +1,4 @@
 import asyncio
-import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -12,11 +11,12 @@ from config import load_settings
 from crypto import PasswordCryptor
 from db.gateway import create_database_gateway
 from handlers import router
+from logger import setup_logging
 from periodic_tasks import LessonAttendanceCheckTask
 
 
 async def main() -> None:
-    logging.basicConfig(level=logging.INFO)
+    setup_logging()
     async with create_database_gateway() as db_gateway:
         await db_gateway.init_tables()
 
@@ -30,12 +30,16 @@ async def main() -> None:
     password_cryptor = PasswordCryptor(
         settings.cryptography.secret_key.get_secret_value(),
     )
-    await bot.set_my_commands([
-        BotCommand(command="start", description="📲 Главное меню")
-    ])
+    await bot.set_my_commands(
+        [
+            BotCommand(command="start", description="📲 Главное меню")
+        ],
+    )
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
-        LessonAttendanceCheckTask(bot=bot, password_cryptor=password_cryptor).execute,
+        LessonAttendanceCheckTask(
+            bot=bot, password_cryptor=password_cryptor,
+        ).execute,
         IntervalTrigger(minutes=15),
     )
 
