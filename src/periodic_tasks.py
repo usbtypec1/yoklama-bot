@@ -5,13 +5,13 @@ from aiogram import Bot
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramAPIError
 
-from crypto import PasswordCryptor
 from db.gateway import create_database_gateway
 from exceptions import ObisClientNotLoggedInError
 from formatters import format_lesson_attendance_change
 from obis.gateway import create_obis_client
 from obis.models import LessonAttendance
 from obis.services import compute_lesson_skip_opportunities
+from services.crypto import PasswordCryptor
 
 
 logger = logging.getLogger(__name__)
