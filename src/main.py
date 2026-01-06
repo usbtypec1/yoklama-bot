@@ -6,21 +6,25 @@ from aiogram.enums import ParseMode
 from aiogram.types import BotCommand
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from dishka import make_async_container
+from dishka.integrations.aiogram import setup_dishka
 
-from config import load_settings
 from crypto import PasswordCryptor
-from db.gateway import create_database_gateway
 from handlers import router
 from logger import setup_logging
 from periodic_tasks import LessonAttendanceCheckTask
+from setup.ioc.registry import get_providers
+from setup.settings.app import AppSettings
 
 
 async def main() -> None:
-    setup_logging()
-    async with create_database_gateway() as db_gateway:
-        await db_gateway.init_tables()
+    settings = AppSettings.from_settings_toml_file()
+    container = make_async_container(*get_providers(), context={
+        AppSettings: settings,
+    })
 
-    settings = load_settings()
+    setup_logging()
+
     bot = Bot(
         token=settings.telegram_bot.token.get_secret_value(),
         default=DefaultBotProperties(
@@ -46,6 +50,8 @@ async def main() -> None:
     dispatcher = Dispatcher()
     dispatcher["password_cryptor"] = password_cryptor
     dispatcher.include_router(router)
+
+    setup_dishka(container, router=dispatcher, auto_inject=True)
 
     await dispatcher.start_polling(bot)
 
