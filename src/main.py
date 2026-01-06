@@ -5,7 +5,6 @@ from aiogram.types import BotCommand
 from dishka import make_async_container
 from dishka.integrations.aiogram import setup_dishka
 
-from handlers import router
 from logger import setup_logging
 from setup.ioc.registry import get_providers
 from setup.settings.app import AppSettings
@@ -28,7 +27,6 @@ async def main() -> None:
     )
 
     dispatcher = Dispatcher()
-    dispatcher.include_router(router)
 
     setup_dishka(container, router=dispatcher, auto_inject=True)
 

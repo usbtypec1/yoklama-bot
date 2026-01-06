@@ -5,6 +5,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 def setup_logging() -> None:
     filename = pathlib.Path(__file__).parents[1] / "logs" / "error.log"
+    filename.parent.mkdir(parents=True, exist_ok=True)
     filename.touch(exist_ok=True)
     error_handler = TimedRotatingFileHandler(
         filename=filename,

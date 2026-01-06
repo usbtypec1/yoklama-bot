@@ -1,4 +1,5 @@
 from dishka import Provider, from_context, Scope, provide
+from pydantic import PostgresDsn
 
 from services.crypto import CryptographySecretKey
 from services.telegram_bot import TelegramBotToken
@@ -23,3 +24,10 @@ class SettingsProvider(Provider):
         settings: AppSettings,
     ) -> CryptographySecretKey:
         return CryptographySecretKey(settings.cryptography_secret.secret_key)
+
+    @provide
+    def provide_postgres_dsn(
+        self,
+        settings: AppSettings,
+    ) -> PostgresDsn:
+        return settings.database.postgres_dsn

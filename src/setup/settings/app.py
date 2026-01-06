@@ -5,12 +5,14 @@ from typing import Self
 from pydantic import BaseModel
 
 from setup.settings.cryptography import CryptographySettings
+from setup.settings.database import DatabaseSettings
 from setup.settings.telegram_bot import TelegramBotSettings
 
 
 class AppSettings(BaseModel):
     telegram_bot: TelegramBotSettings
     cryptography: CryptographySettings
+    database: DatabaseSettings
 
     @classmethod
     def from_settings_toml_file(cls) -> Self:

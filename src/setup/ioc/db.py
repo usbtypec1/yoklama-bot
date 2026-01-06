@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
 )
 
-from db.engine import get_engine
+from db.engine import get_engine, get_session_factory, get_session
 
 
 def db_provider() -> Provider:
@@ -16,12 +16,12 @@ def db_provider() -> Provider:
         scope=Scope.APP,
     )
     provider.provide(
-        source=async_sessionmaker,
+        source=get_session_factory,
         provides=async_sessionmaker,
         scope=Scope.APP,
     )
     provider.provide(
-        source=async_sessionmaker,
+        source=get_session,
         provides=AsyncSession,
         scope=Scope.REQUEST,
     )
