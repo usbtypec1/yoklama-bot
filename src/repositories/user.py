@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import select, update, exists
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +11,17 @@ class UserRepository:
     def __init__(self, session: AsyncSession):
         self.__session = session
 
+    async def get_user_by_id(self, user_id: int) -> User | None:
+        user = await self.__session.get(DatabaseUser, user_id)
+        if user is None:
+            return None
+        return User(
+            id=user.id,
+            student_number=user.student_number,
+            encrypted_password=user.encrypted_password,
+            has_accepted_terms=user.has_accepted_terms,
+        )
+
     async def get_users_with_credentials(self) -> list[User]:
         statement = select(DatabaseUser).where(
             DatabaseUser.student_number.isnot(None),
@@ -22,6 +33,7 @@ class UserRepository:
                 id=user.id,
                 student_number=user.student_number,
                 encrypted_password=user.encrypted_password,
+                has_accepted_terms=user.has_accepted_terms,
             )
             for user in result.scalars().all()
         ]
@@ -43,6 +55,7 @@ class UserRepository:
             id=user.id,
             student_number=user.student_number,
             encrypted_password=user.encrypted_password,
+            has_accepted_terms=user.has_accepted_terms,
         )
 
     async def create_user(self, user_id: int) -> None:

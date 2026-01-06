@@ -2,7 +2,10 @@ from aiogram import Router, F
 from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import (
+    Message, ReplyKeyboardMarkup, KeyboardButton,
+    InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery,
+)
 from dishka import FromDishka
 
 from exceptions.obis import ObisClientNotLoggedInError
@@ -35,11 +38,40 @@ class CredentialsStates(StatesGroup):
     obis_password = State()
 
 
+@router.callback_query(F.data == "accept_terms")
+async def on_accept_terms(
+    callback_query: CallbackQuery,
+    user_repository: FromDishka[UserRepository],
+) -> None:
+    await user_repository.create_user(callback_query.from_user.id)
+    await callback_query.message.edit_text("✅ Вы успешно приняли условия использования бота.")
+    await callback_query.message.answer(
+        "📲 Главное меню.",
+        reply_markup=MAIN_MENU,
+    )
+
+
 @router.message(CommandStart())
 async def on_start(
     message: Message,
     user_repository: FromDishka[UserRepository],
 ) -> None:
+    user = await user_repository.get_user_by_id(message.from_user.id)
+    if user is None or not user.has_accepted_terms:
+        await message.answer(
+            "Для использования бота необходимо принять условия использования: *<a href=\"https://graph.org/Polzovatelskoe-soglashenie-manas-yoklama-bot-01-06\">ссылка</a>*.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text="Принять условия",
+                            callback_data="accept_terms",
+                        )
+                    ]
+                ],
+            ),
+        )
+        return
     await message.answer(
         "📲 Главное меню.",
         reply_markup=MAIN_MENU,
