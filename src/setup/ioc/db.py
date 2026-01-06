@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from db.engine import get_engine, get_session_factory, get_session
+from repositories.user import UserRepository
 
 
 def db_provider() -> Provider:
@@ -23,6 +24,11 @@ def db_provider() -> Provider:
     provider.provide(
         source=get_session,
         provides=AsyncSession,
+        scope=Scope.REQUEST,
+    )
+    provider.provide(
+        source=UserRepository,
+        provides=UserRepository,
         scope=Scope.REQUEST,
     )
     return provider

@@ -5,10 +5,13 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 
 from crypto import PasswordCryptor
+from dishka import FromDishka
+
 from db.gateway import create_database_gateway
 from exceptions import ObisClientNotLoggedInError
 from obis.gateway import create_obis_client
 from obis.services import compute_lesson_skip_opportunities
+from repositories.user import UserRepository
 
 
 router = Router(name=__name__)
@@ -34,25 +37,26 @@ class CredentialsStates(StatesGroup):
 
 
 @router.message(CommandStart())
-async def on_start(message: Message) -> None:
+async def on_start(
+    message: Message,
+    user_repository: FromDishka[UserRepository],
+) -> None:
     await message.answer(
         "📲 Главное меню.",
         reply_markup=MAIN_MENU,
     )
-    async with create_database_gateway() as database_gateway:
-        await database_gateway.create_user(message.from_user.id)
+    await user_repository.create_user(message.from_user.id)
 
 
 @router.message(F.text == "Экзамены")
 async def on_view_exams_command(
     message: Message,
     password_cryptor: PasswordCryptor,
+    user_repository: FromDishka[UserRepository],
 ) -> None:
-    async with create_database_gateway() as database_gateway:
-        user = await database_gateway.get_user_with_credentials_by_id(
-            message.from_user.id,
-        )
-
+    user = await user_repository.get_user_with_credentials_by_id(
+        user_id=message.from_user.id,
+    )
     if user is None:
         await message.answer(
             "❗ Для начала введите ваши данные от OBIS.",
@@ -90,11 +94,11 @@ async def on_view_exams_command(
 async def on_view_yoklama_command(
     message: Message,
     password_cryptor: PasswordCryptor,
+    user_repository: FromDishka[UserRepository],
 ) -> None:
-    async with create_database_gateway() as database_gateway:
-        user = await database_gateway.get_user_with_credentials_by_id(
-            user_id=message.from_user.id,
-        )
+    user = await user_repository.get_user_with_credentials_by_id(
+        user_id=message.from_user.id,
+    )
 
     if user is None:
         await message.answer(
@@ -146,6 +150,7 @@ async def on_obis_password_entered(
     message: Message,
     state: FSMContext,
     password_cryptor: PasswordCryptor,
+    user_repository: FromDishka[UserRepository],
 ) -> None:
     data = await state.get_data()
     student_number = data.get("student_number")
@@ -165,12 +170,11 @@ async def on_obis_password_entered(
             )
             return
 
-    async with create_database_gateway() as database_gateway:
-        await database_gateway.update_user_credentials(
-            user_id=message.from_user.id,
-            student_number=student_number,
-            encrypted_password=password_cryptor.encrypt(obis_password),
-        )
+    await user_repository.update_user_credentials(
+        user_id=message.from_user.id,
+        student_number=student_number,
+        encrypted_password=password_cryptor.encrypt(obis_password),
+    )
 
     await message.edit_text(
         "✅ Ваши данные от OBIS успешно сохранены.",
@@ -185,7 +189,9 @@ async def on_student_number_entered(
     message: Message,
     state: FSMContext,
 ) -> None:
-    await state.update_data(student_number=message.text.removesuffix("@manas.edu.kg"))
+    await state.update_data(
+        student_number=message.text.removesuffix("@manas.edu.kg"),
+    )
     await state.set_state(CredentialsStates.obis_password)
     await message.answer("✏️ Введите ваш пароль от OBIS:")
 

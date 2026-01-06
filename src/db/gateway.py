@@ -27,12 +27,6 @@ class DatabaseGateway:
     def __init__(self, connection: aiosqlite.Connection):
         self.__connection = connection
 
-    async def get_user_ids(self) -> list[int]:
-        query = "SELECT DISTINCT id FROM users"
-        async with self.__connection.execute(query) as cursor:
-            rows = await cursor.fetchall()
-        return [row[0] for row in rows]
-
     async def get_users_with_credentials(self) -> list[UserWithCredentials]:
         query = "SELECT id, student_number, encrypted_password FROM users WHERE student_number IS NOT NULL AND encrypted_password IS NOT NULL"
         async with self.__connection.execute(query) as cursor:
@@ -45,44 +39,6 @@ class DatabaseGateway:
             )
             for row in rows
         ]
-
-    async def get_user_with_credentials_by_id(
-        self,
-        user_id: int,
-    ) -> UserWithCredentials | None:
-        query = "SELECT id, student_number, encrypted_password FROM users WHERE id = ? AND student_number IS NOT NULL AND encrypted_password IS NOT NULL"
-        params = (user_id,)
-        async with self.__connection.execute(query, params) as cursor:
-            row = await cursor.fetchone()
-        if row is None:
-            return None
-        return UserWithCredentials(
-            id=row[0],
-            student_number=row[1],
-            encrypted_password=row[2],
-        )
-
-    async def create_user(self, user_id: int) -> None:
-        query = "INSERT OR IGNORE INTO users (id) VALUES (?)"
-        params = (user_id,)
-        await self.__connection.execute(query, params)
-        await self.__connection.commit()
-
-    async def update_user_credentials(
-        self,
-        user_id: int,
-        student_number: str,
-        encrypted_password: str,
-    ) -> None:
-        query = """
-                UPDATE users
-                SET student_number     = ?,
-                    encrypted_password = ?
-                WHERE id = ?;
-                """
-        params = (student_number, encrypted_password, user_id)
-        await self.__connection.execute(query, params)
-        await self.__connection.commit()
 
     async def get_last_lessons_attendance(self, lesson_code: str,
                                           user_id: int) -> LessonAttendance | None:
