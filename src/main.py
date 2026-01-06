@@ -23,14 +23,10 @@ async def main() -> None:
         AppSettings: settings,
     })
 
+    bot = await container.get(Bot)
+
     setup_logging()
 
-    bot = Bot(
-        token=settings.telegram_bot.token.get_secret_value(),
-        default=DefaultBotProperties(
-            parse_mode=ParseMode.HTML,
-        ),
-    )
     password_cryptor = PasswordCryptor(
         settings.cryptography.secret_key.get_secret_value(),
     )
