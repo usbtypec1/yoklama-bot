@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,8 +13,8 @@ class UserRepository:
 
     async def get_users_with_credentials(self) -> list[User]:
         statement = select(DatabaseUser).where(
-            User.student_number.isnot(None),
-            User.encrypted_password.isnot(None),
+            DatabaseUser.student_number.isnot(None),
+            DatabaseUser.encrypted_password.isnot(None),
         )
         result = await self.__session.execute(statement)
         return [
@@ -52,7 +52,6 @@ class UserRepository:
         ).on_conflict_do_nothing()
         async with self.__session.begin():
             await self.__session.execute(statement)
-            await self.__session.commit()
 
     async def update_user_credentials(
         self,
@@ -63,8 +62,7 @@ class UserRepository:
         user = await self.__session.get(DatabaseUser, user_id)
         if user is None:
             return False
-        async with self.__session.begin():
-            user.student_number = student_number
-            user.encrypted_password = encrypted_password
-            await self.__session.commit()
+        user.student_number = student_number
+        user.encrypted_password = encrypted_password
+        await self.__session.commit()
         return True

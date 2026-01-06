@@ -31,6 +31,6 @@ def setup_logging() -> None:
     )
 
     root = logging.getLogger()
-    root.setLevel(logging.WARNING)
+    root.setLevel(logging.DEBUG)
     root.addHandler(error_handler)
     root.addHandler(console_handler)

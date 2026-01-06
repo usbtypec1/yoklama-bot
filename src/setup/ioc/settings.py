@@ -23,7 +23,7 @@ class SettingsProvider(Provider):
         self,
         settings: AppSettings,
     ) -> CryptographySecretKey:
-        return CryptographySecretKey(settings.cryptography_secret.secret_key)
+        return CryptographySecretKey(settings.cryptography.secret_key)
 
     @provide
     def provide_postgres_dsn(

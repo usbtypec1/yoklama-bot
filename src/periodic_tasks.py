@@ -37,7 +37,7 @@ class LessonAttendanceCheckTask:
                 logger.warning("Could not log in to Obis for user %s", user.id)
                 return
 
-            attendance_list = await obis_client.get_lessons_attendance_list()
+            attendance_list = await obis_client.get_lessons_attendance()
 
         old_and_new_attendance_list: list[
             tuple[LessonAttendance, LessonAttendance]] = []

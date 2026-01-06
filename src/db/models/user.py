@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import BigInteger, func
+from sqlalchemy import func, BIGINT
 from sqlalchemy.orm import Mapped, mapped_column
 
 from db.models.base import Base
@@ -9,7 +9,7 @@ from db.models.base import Base
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
     has_accepted_terms: Mapped[bool]
     student_number: Mapped[str | None]
     encrypted_password: Mapped[str | None]

@@ -5,7 +5,7 @@ from typing import Final
 
 import aiosqlite
 
-from db.models import UserWithCredentials
+from models.user import User
 from obis.models import LessonAttendance
 
 
@@ -27,12 +27,12 @@ class DatabaseGateway:
     def __init__(self, connection: aiosqlite.Connection):
         self.__connection = connection
 
-    async def get_users_with_credentials(self) -> list[UserWithCredentials]:
+    async def get_users_with_credentials(self) -> list[User]:
         query = "SELECT id, student_number, encrypted_password FROM users WHERE student_number IS NOT NULL AND encrypted_password IS NOT NULL"
         async with self.__connection.execute(query) as cursor:
             rows = await cursor.fetchall()
         return [
-            UserWithCredentials(
+            User(
                 id=row[0],
                 student_number=row[1],
                 encrypted_password=row[2],

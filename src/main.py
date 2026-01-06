@@ -1,10 +1,14 @@
 import asyncio
+import sys
 
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand
 from dishka import make_async_container
 from dishka.integrations.aiogram import setup_dishka
+from sqlalchemy.ext.asyncio import AsyncEngine
 
+from db.models.base import Base
+from handlers import router
 from logger import setup_logging
 from setup.ioc.registry import get_providers
 from setup.settings.app import AppSettings
@@ -12,9 +16,15 @@ from setup.settings.app import AppSettings
 
 async def main() -> None:
     settings = AppSettings.from_settings_toml_file()
-    container = make_async_container(*get_providers(), context={
-        AppSettings: settings,
-    })
+    container = make_async_container(
+        *get_providers(), context={
+            AppSettings: settings,
+        },
+    )
+
+    engine = await container.get(AsyncEngine)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
     bot = await container.get(Bot)
 
@@ -27,6 +37,7 @@ async def main() -> None:
     )
 
     dispatcher = Dispatcher()
+    dispatcher.include_router(router)
 
     setup_dishka(container, router=dispatcher, auto_inject=True)
 
@@ -34,4 +45,6 @@ async def main() -> None:
 
 
 if __name__ == '__main__':
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(main())

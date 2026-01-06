@@ -3,15 +3,14 @@ from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
-
-from crypto import PasswordCryptor
 from dishka import FromDishka
 
-from db.gateway import create_database_gateway
-from exceptions import ObisClientNotLoggedInError
-from obis.gateway import create_obis_client
-from obis.services import compute_lesson_skip_opportunities
+from exceptions.obis import ObisClientNotLoggedInError
+from exceptions.user import UserHasNoCredentialsError
+from formatters import format_exams_list, format_attendance_list
 from repositories.user import UserRepository
+from services.obis import ObisService
+from services.user import UserService
 
 
 router = Router(name=__name__)
@@ -51,95 +50,52 @@ async def on_start(
 @router.message(F.text == "Экзамены")
 async def on_view_exams_command(
     message: Message,
-    password_cryptor: PasswordCryptor,
-    user_repository: FromDishka[UserRepository],
+    user_service: FromDishka[UserService],
 ) -> None:
-    user = await user_repository.get_user_with_credentials_by_id(
-        user_id=message.from_user.id,
-    )
-    if user is None:
+    sent_message = await message.answer("⌛ Загрузка ваших экзаменов...")
+
+    try:
+        exams = await user_service.get_exams(message.from_user.id)
+    except UserHasNoCredentialsError:
         await message.answer(
             "❗ Для начала введите ваши данные от OBIS.",
             reply_markup=MAIN_MENU,
         )
+        await sent_message.delete()
+        return
+    except ObisClientNotLoggedInError:
+        await sent_message.edit_text(
+            "❌ Не удалось войти в OBIS с предоставленными данными. Пожалуйста, проверьте их и попробуйте снова.",
+        )
         return
 
-    message = await message.answer("⌛ Загрузка ваших экзаменов...")
-    async with create_obis_client(
-        student_number=user.student_number,
-        password=password_cryptor.decrypt(user.encrypted_password),
-    ) as obis_client:
-        await obis_client.login()
-        try:
-            lessons_with_exams = await obis_client.get_taken_grades_page()
-        except ObisClientNotLoggedInError:
-            await message.edit_text(
-                "❌ Не удалось войти в OBIS с предоставленными данными. Пожалуйста, проверьте их и попробуйте снова.",
-            )
-            return
-
-        text = ""
-        for lesson in lessons_with_exams:
-            text += f"<b>{lesson.lesson_name} ({lesson.lesson_code})</b>\n"
-            for exam in lesson.exams:
-                text += f" - {exam.name}: {exam.score or ''}\n"
-            text += "\n"
-
-        if not text:
-            text = "У вас нет оценок за экзамены."
-        await message.edit_text(text.strip())
+    text = format_exams_list(exams)
+    await sent_message.edit_text(text)
 
 
 @router.message(F.text == "Йоклама")
 async def on_view_yoklama_command(
     message: Message,
-    password_cryptor: PasswordCryptor,
-    user_repository: FromDishka[UserRepository],
+    user_service: FromDishka[UserService],
 ) -> None:
-    user = await user_repository.get_user_with_credentials_by_id(
-        user_id=message.from_user.id,
-    )
-
-    if user is None:
-        await message.answer(
+    sent_message = await message.answer("⌛ Загрузка вашей йокламы...")
+    try:
+        attendance = await user_service.get_attendance(message.from_user.id)
+    except UserHasNoCredentialsError:
+        await sent_message.answer(
             "❗ Для начала введите ваши данные от OBIS.",
             reply_markup=MAIN_MENU,
         )
+        await message.delete()
+        return
+    except ObisClientNotLoggedInError:
+        await sent_message.edit_text(
+            "❌ Не удалось войти в OBIS с предоставленными данными. Пожалуйста, проверьте их и попробуйте снова.",
+        )
         return
 
-    message = await message.answer("⌛ Загрузка вашей йокламы...")
-    async with create_obis_client(
-        student_number=user.student_number,
-        password=password_cryptor.decrypt(user.encrypted_password),
-    ) as obis_client:
-        await obis_client.login()
-        try:
-            lessons = await obis_client.get_lessons_attendance_list()
-        except ObisClientNotLoggedInError:
-            await message.edit_text(
-                "❌ Не удалось войти в OBIS с предоставленными данными. Пожалуйста, проверьте их и попробуйте снова.",
-            )
-            return
-
-        text = ''
-        for lesson in lessons:
-            skipping = compute_lesson_skip_opportunities(lesson)
-            lesson_name = f"<b>{lesson.lesson_name}</b>"
-
-            if skipping.practice <= 1 or skipping.theory <= 1:
-                lesson_name = f"⚠️ {lesson_name}"
-            elif skipping.practice == 0 or skipping.theory == 0:
-                lesson_name = f"❗ {lesson_name}"
-
-            text += (
-                f"{lesson_name}\n"
-                f"Теория: {lesson.theory_skips_percentage}% (осталось {skipping.theory} пропусков)\n"
-                f"Практика: {lesson.practice_skips_percentage}% (осталось {skipping.practice} пропусков)\n\n"
-            )
-
-        if not text:
-            text = "У вас нет предметов."
-        await message.edit_text(text.strip())
+    text = format_attendance_list(attendance)
+    await sent_message.edit_text(text)
 
 
 @router.message(
@@ -149,34 +105,35 @@ async def on_view_yoklama_command(
 async def on_obis_password_entered(
     message: Message,
     state: FSMContext,
-    password_cryptor: PasswordCryptor,
-    user_repository: FromDishka[UserRepository],
+    obis_service: FromDishka[ObisService],
+    user_service: FromDishka[UserService],
 ) -> None:
     data = await state.get_data()
     student_number = data.get("student_number")
     obis_password = message.text
     await state.clear()
-    message = await message.answer("🔒 Проверка введённых данных...")
+    sent_message = await message.answer("🔒 Проверка введённых данных...")
 
-    async with create_obis_client(
-        student_number=student_number,
-        password=obis_password,
-    ) as obis_client:
-        try:
-            await obis_client.login()
-        except ObisClientNotLoggedInError:
-            await message.edit_text(
-                "❌ Не удалось войти в OBIS с предоставленными данными. Пожалуйста, проверьте их и попробуйте снова.",
-            )
-            return
+    try:
+        await obis_service.login(student_number, obis_password)
+    except ObisClientNotLoggedInError:
+        await sent_message.edit_text(
+            "❌ Не удалось войти в OBIS с предоставленными данными. Пожалуйста, проверьте их и попробуйте снова.",
+        )
+        return
 
-    await user_repository.update_user_credentials(
+    updated = await user_service.update_user_credentials(
         user_id=message.from_user.id,
         student_number=student_number,
-        encrypted_password=password_cryptor.encrypt(obis_password),
+        password=obis_password,
     )
+    if not updated:
+        await sent_message.edit_text(
+            "❌ Произошла ошибка при сохранении ваших данных. Пожалуйста, попробуйте снова позже.",
+        )
+        return
 
-    await message.edit_text(
+    await sent_message.edit_text(
         "✅ Ваши данные от OBIS успешно сохранены.",
     )
 

@@ -1,0 +1,5 @@
+[telegram_bot]
+token = "get token from @BotFather on Telegram"
+
+[cryptography]
+secret_key = "use python src/generate_fernet_key.py to generate a key"
