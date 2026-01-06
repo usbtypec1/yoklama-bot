@@ -1,5 +1,7 @@
-from pydantic import BaseModel, SecretStr
+from pydantic import BaseModel
+
+from services.crypto import CryptographySecretKey
 
 
 class CryptographySettings(BaseModel):
-    secret_key: SecretStr
+    secret_key: CryptographySecretKey

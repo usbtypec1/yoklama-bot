@@ -1,5 +1,7 @@
-from pydantic import BaseModel, SecretStr
+from pydantic import BaseModel
+
+from services.telegram_bot import TelegramBotToken
 
 
 class TelegramBotSettings(BaseModel):
-    token: SecretStr
+    token: TelegramBotToken
