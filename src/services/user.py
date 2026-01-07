@@ -26,15 +26,15 @@ class UserService:
         self.__lesson_attendance_repository = lesson_attendance_repository
         self.__lesson_repository = lesson_repository
 
-    async def update_user_credentials(
+    async def save_user(
         self,
         *,
         user_id: int,
         student_number: str,
         password: str,
-    ) -> bool:
+    ) -> None:
         encrypted_password = self.__password_cryptor.encrypt(password)
-        return await self.__user_repository.update_user_credentials(
+        await self.__user_repository.save_user(
             user_id=user_id,
             student_number=student_number,
             encrypted_password=encrypted_password,

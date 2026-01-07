@@ -63,19 +63,19 @@ class UserRepository:
             id=user_id,
             has_accepted_terms=True,
         ).on_conflict_do_nothing()
-        async with self.__session.begin():
-            await self.__session.execute(statement)
+        await self.__session.execute(statement)
 
-    async def update_user_credentials(
+    async def save_user(
         self,
         user_id: int,
         student_number: str,
         encrypted_password: str,
-    ) -> bool:
-        user = await self.__session.get(DatabaseUser, user_id)
-        if user is None:
-            return False
-        user.student_number = student_number
-        user.encrypted_password = encrypted_password
+    ) -> None:
+        user = DatabaseUser(
+            id=user_id,
+            student_number=student_number,
+            encrypted_password=encrypted_password,
+            has_accepted_terms=True,
+        )
+        await self.__session.merge(user)
         await self.__session.commit()
-        return True

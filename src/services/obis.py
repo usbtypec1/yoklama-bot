@@ -92,8 +92,6 @@ def parse_taken_grades_page(text: str) -> list[LessonExams]:
         main_row = rows[i]
         tds = main_row.find_all("td", recursive=False)
 
-        print(tds, len(tds))
-
         if len(tds) == 5:
             # This is a new lesson row
             lesson_code = tds[1].get_text(strip=True) or None
@@ -191,19 +189,21 @@ class ObisService:
         csrf_input = soup.find("input", {"name": "_csrf"})
         if csrf_input is None:
             log.error("ObisClient login: CSRF token not found")
-            return
+            raise ObisClientNotLoggedInError
 
         csrf_token = csrf_input.get("value")
         if csrf_token is None:
             log.error("ObisClient login: CSRF token value not found")
-            return
+            raise ObisClientNotLoggedInError
 
         request_data = {
             "_csrf": csrf_token,
             "LoginForm[username]": student_number,
             "LoginForm[password_hash]": password,
         }
+
         response = await self.__http_client.post(url, data=request_data)
+
         if '/site/login' in response.text or response.is_error:
             log.error(
                 "ObisClient login: login failed for student number %s",

@@ -39,6 +39,8 @@ async def main() -> None:
         ],
     )
 
+    await LessonAttendanceCheckTask(container).execute()
+
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
         LessonAttendanceCheckTask(container).execute,
