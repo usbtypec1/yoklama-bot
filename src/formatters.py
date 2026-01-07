@@ -4,6 +4,16 @@ from models.obis import LessonAttendance, LessonSkipOpportunity, LessonExams
 from services.obis import compute_lesson_skip_opportunities
 
 
+def inflect_word_skips(count: int) -> str:
+    count = abs(count)
+
+    if count % 10 == 1 and count % 100 != 11:
+        return "пропуск"
+    elif count % 10 in (2, 3, 4) and count % 100 not in (12, 13, 14):
+        return "пропуска"
+    return "пропусков"
+
+
 def format_lesson_attendance_change(
     old_lesson_attendance: LessonAttendance,
     new_lesson_attendance: LessonAttendance,
@@ -11,8 +21,8 @@ def format_lesson_attendance_change(
 ):
     return (
         f"<b>Ваша йоклама по предмету {old_lesson_attendance.lesson_name} изменилась:\n</b>"
-        f"{old_lesson_attendance.theory_skips_percentage} → {new_lesson_attendance.theory_skips_percentage} (осталось {lesson_skip_opportunity.theory} пропусков)\n"
-        f"с {old_lesson_attendance.practice_skips_percentage} → {new_lesson_attendance.practice_skips_percentage} (осталось {lesson_skip_opportunity.practice} пропусков)"
+        f"{old_lesson_attendance.theory_skips_percentage} → {new_lesson_attendance.theory_skips_percentage} (осталось {lesson_skip_opportunity.theory} {inflect_word_skips(lesson_skip_opportunity.theory)})\n"
+        f"с {old_lesson_attendance.practice_skips_percentage} → {new_lesson_attendance.practice_skips_percentage} (осталось {lesson_skip_opportunity.practice} {inflect_word_skips(lesson_skip_opportunity.practice)})"
     )
 
 
