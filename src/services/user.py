@@ -3,6 +3,7 @@ from models.obis import (
     LessonExams, LessonAttendance, LessonAttendanceChange,
 )
 from models.user import User
+from repositories.lesson import LessonRepository
 from repositories.lesson_attendance import LessonAttendanceRepository
 from repositories.user import UserRepository
 from services.crypto import PasswordCryptor
@@ -17,11 +18,13 @@ class UserService:
         password_cryptor: PasswordCryptor,
         obis_service: ObisService,
         lesson_attendance_repository: LessonAttendanceRepository,
+        lesson_repository: LessonRepository,
     ):
         self.__user_repository = user_repository
         self.__password_cryptor = password_cryptor
         self.__obis_service = obis_service
         self.__lesson_attendance_repository = lesson_attendance_repository
+        self.__lesson_repository = lesson_repository
 
     async def update_user_credentials(
         self,
@@ -105,6 +108,10 @@ class UserService:
         attendance_change: LessonAttendanceChange,
     ) -> None:
         current_attendance = attendance_change.current
+        await self.__lesson_repository.create_lesson(
+            code=current_attendance.lesson_code,
+            name=current_attendance.lesson_name,
+        )
         await self.__lesson_attendance_repository.create_attendance(
             user_id=current_attendance.user_id,
             lesson_code=current_attendance.lesson_code,

@@ -2,10 +2,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from db.models.lesson import Lesson
-from db.models.lesson_attendance import LessonAttendance as DatabaseLessonAttendance
+from db.models.lesson_attendance import (
+    LessonAttendance as DatabaseLessonAttendance,
+)
 from models.obis import LessonAttendance
-
 
 
 class LessonAttendanceRepository:
@@ -41,7 +41,7 @@ class LessonAttendanceRepository:
                 DatabaseLessonAttendance.lesson_code == lesson_code,
                 DatabaseLessonAttendance.user_id == user_id,
             )
-            .options(joinedload(Lesson))
+            .options(joinedload(DatabaseLessonAttendance.lesson))
             .order_by(DatabaseLessonAttendance.created_at.desc())
             .limit(1)
         )
