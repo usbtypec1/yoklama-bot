@@ -79,3 +79,12 @@ class UserRepository:
         )
         await self.__session.merge(user)
         await self.__session.commit()
+
+    async def accept_terms(
+        self,
+        user_id: int,
+    ) -> None:
+        user = await self.__session.get(DatabaseUser, user_id)
+        if user is not None:
+            user.has_accepted_terms = True
+            await self.__session.commit()

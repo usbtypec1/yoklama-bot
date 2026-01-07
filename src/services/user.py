@@ -1,4 +1,7 @@
-from exceptions.user import UserHasNoCredentialsError
+from exceptions.user import (
+    UserHasNoCredentialsError,
+    UserNotAcceptedTermsError,
+)
 from models.obis import (
     LessonExams, LessonAttendance, LessonAttendanceChange,
 )
@@ -46,6 +49,8 @@ class UserService:
         )
         if user is None:
             raise UserHasNoCredentialsError
+        if not user.has_accepted_terms:
+            raise UserNotAcceptedTermsError
         plain_password = self.__password_cryptor.decrypt(
             user.encrypted_password,
         )
@@ -61,6 +66,8 @@ class UserService:
         )
         if user is None:
             raise UserHasNoCredentialsError
+        if not user.has_accepted_terms:
+            raise UserNotAcceptedTermsError
         plain_password = self.__password_cryptor.decrypt(
             user.encrypted_password,
         )
@@ -118,3 +125,6 @@ class UserService:
             theory_skips_percentage=current_attendance.theory_skips_percentage,
             practice_skips_percentage=current_attendance.practice_skips_percentage,
         )
+
+    async def accept_terms(self, user_id: int) -> None:
+        await self.__user_repository.accept_terms(user_id)

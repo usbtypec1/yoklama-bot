@@ -66,4 +66,7 @@ class LessonAttendanceCheckTask:
             users = await user_service.get_users_with_credentials()
 
             for user in users:
-                await self._process_user(user, user_service, bot)
+                try:
+                    await self._process_user(user, user_service, bot)
+                except Exception as e:
+                    logger.exception("Error processing user %s: %s", user.id, e)

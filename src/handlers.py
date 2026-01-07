@@ -5,13 +5,17 @@ from aiogram.filters import CommandStart, ExceptionTypeFilter
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import (
     Message, ReplyKeyboardMarkup, KeyboardButton,
-    CallbackQuery, WebAppInfo, ErrorEvent,
+    CallbackQuery, WebAppInfo, ErrorEvent, InlineKeyboardMarkup,
+    InlineKeyboardButton,
 )
 from dishka import FromDishka
 from pydantic import BaseModel, Field
 
 from exceptions.obis import ObisClientNotLoggedInError
-from exceptions.user import UserHasNoCredentialsError
+from exceptions.user import (
+    UserHasNoCredentialsError,
+    UserNotAcceptedTermsError,
+)
 from formatters import format_exams_list, format_attendance_list
 from repositories.user import UserRepository
 from services.user import UserService
@@ -54,10 +58,46 @@ class CredentialsStates(StatesGroup):
     obis_password = State()
 
 
-@router.error(ExceptionTypeFilter(
-    UserHasNoCredentialsError,
-    ObisClientNotLoggedInError,
-))
+@router.callback_query(F.data == "accept_terms")
+async def on_accept_terms(
+    callback_query: CallbackQuery,
+    user_service: FromDishka[UserService],
+) -> None:
+    await user_service.accept_terms(callback_query.from_user.id)
+    await callback_query.message.edit_text(
+        "✅ Вы успешно приняли условия использования бота.",
+    )
+    await callback_query.message.answer(
+        "📲 Главное меню.",
+        reply_markup=MAIN_MENU,
+    )
+
+
+@router.error(ExceptionTypeFilter(UserNotAcceptedTermsError))
+async def on_user_not_accepted_terms_error(
+    event: ErrorEvent,
+) -> None:
+    await event.update.message.answer(
+        "🗝️ Пожалуйста, примите условия использования бота, чтобы продолжить: https://graph.org/Polzovatelskoe-soglashenie-manas-yoklama-bot-01-06",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="✅ Принять",
+                        callback_data="accept_terms",
+                    ),
+                ],
+            ],
+        ),
+    )
+
+
+@router.error(
+    ExceptionTypeFilter(
+        UserHasNoCredentialsError,
+        ObisClientNotLoggedInError,
+    ),
+)
 async def on_user_has_no_credentials_error(
     event: ErrorEvent,
 ) -> None:
