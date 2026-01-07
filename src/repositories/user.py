@@ -38,26 +38,6 @@ class UserRepository:
             for user in result.scalars().all()
         ]
 
-    async def get_user_with_credentials_by_id(
-        self,
-        user_id: int,
-    ) -> User | None:
-        statement = select(DatabaseUser).where(
-            DatabaseUser.id == user_id,
-            DatabaseUser.student_number.isnot(None),
-            DatabaseUser.encrypted_password.isnot(None),
-        )
-        result = await self.__session.execute(statement)
-        user = result.scalar_one_or_none()
-        if user is None:
-            return None
-        return User(
-            id=user.id,
-            student_number=user.student_number,
-            encrypted_password=user.encrypted_password,
-            has_accepted_terms=user.has_accepted_terms,
-        )
-
     async def create_user(self, user_id: int) -> None:
         statement = insert(DatabaseUser).values(
             id=user_id,

@@ -11,8 +11,8 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
     has_accepted_terms: Mapped[bool]
-    student_number: Mapped[str | None]
-    encrypted_password: Mapped[str | None]
+    student_number: Mapped[str]
+    encrypted_password: Mapped[str]
     created_at: Mapped[datetime.datetime] = mapped_column(
         server_default=func.now(),
     )

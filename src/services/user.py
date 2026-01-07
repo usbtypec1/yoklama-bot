@@ -44,7 +44,7 @@ class UserService:
         )
 
     async def get_exams(self, user_id: int) -> list[LessonExams]:
-        user = await self.__user_repository.get_user_with_credentials_by_id(
+        user = await self.__user_repository.get_user_by_id(
             user_id=user_id,
         )
         if user is None:
@@ -61,7 +61,7 @@ class UserService:
         self,
         user_id: int,
     ) -> list[LessonAttendance]:
-        user = await self.__user_repository.get_user_with_credentials_by_id(
+        user = await self.__user_repository.get_user_by_id(
             user_id=user_id,
         )
         if user is None:
