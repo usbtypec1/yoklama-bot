@@ -1,4 +1,4 @@
-from dishka import Provider, provide, Scope
+from dishka import Provider, Scope
 
 from services.crypto import PasswordCryptor
 from services.obis import ObisService, ObisHttpClient, get_obis_http_client

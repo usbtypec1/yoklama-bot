@@ -10,7 +10,7 @@ from models.obis import (
     LessonAttendance,
     LessonSkipOpportunity,
     Exam,
-    LessonExams,
+    LessonExams, LessonAttendanceParseResult,
 )
 
 
@@ -138,14 +138,16 @@ def parse_taken_grades_page(text: str) -> list[LessonExams]:
 
     return lessons
 
-def parse_lessons_attendance_page(html: str) -> list[LessonAttendance]:
+def parse_lessons_attendance_page(
+    html: str,
+) -> list[LessonAttendanceParseResult]:
     soup = BeautifulSoup(html, "lxml")
     table = soup.find("table")
     if table is None:
         log.warning("No attendance table found in the HTML page")
         return []
     table_rows = table.find_all("tr")[1:]
-    lessons: list[LessonAttendance] = []
+    lessons: list[LessonAttendanceParseResult] = []
     for table_row in table_rows:
         tds = table_row.find_all("td")
         if len(tds) != 9:
@@ -157,7 +159,7 @@ def parse_lessons_attendance_page(html: str) -> list[LessonAttendance]:
             "% ",
         )
 
-        lesson = LessonAttendance(
+        lesson = LessonAttendanceParseResult(
             lesson_name=lesson_name,
             lesson_code=lesson_code,
             theory_skips_percentage=try_parse_float(
@@ -209,7 +211,9 @@ class ObisService:
             )
             raise ObisClientNotLoggedInError
 
-    async def get_lessons_attendance(self) -> list[LessonAttendance]:
+    async def get_lessons_attendance(
+        self,
+    ) -> list[LessonAttendanceParseResult]:
         url = "/vs-ders/taken-lessons"
         response = await self.__http_client.get(url)
         return parse_lessons_attendance_page(response.text)

@@ -3,7 +3,15 @@ from dataclasses import dataclass
 from pydantic import BaseModel
 
 
-class LessonAttendance(BaseModel):
+class LessonAttendanceParseResult(BaseModel):
+    lesson_name: str
+    lesson_code: str
+    theory_skips_percentage: float | None
+    practice_skips_percentage: float | None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class LessonAttendance:
     user_id: int
     lesson_name: str
     lesson_code: str

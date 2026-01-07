@@ -4,7 +4,6 @@ import sys
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from dishka import make_async_container
 from dishka.integrations.aiogram import setup_dishka

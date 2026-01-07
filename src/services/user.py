@@ -1,7 +1,7 @@
-from collections.abc import Iterable
-
 from exceptions.user import UserHasNoCredentialsError
-from models.obis import LessonExams, LessonAttendance, LessonAttendanceChange
+from models.obis import (
+    LessonExams, LessonAttendance, LessonAttendanceChange,
+)
 from models.user import User
 from repositories.lesson_attendance import LessonAttendanceRepository
 from repositories.user import UserRepository
@@ -49,7 +49,10 @@ class UserService:
         await self.__obis_service.login(user.student_number, plain_password)
         return await self.__obis_service.get_lesson_exams()
 
-    async def get_attendance(self, user_id: int) -> list[LessonAttendance]:
+    async def get_attendance(
+        self,
+        user_id: int,
+    ) -> list[LessonAttendance]:
         user = await self.__user_repository.get_user_with_credentials_by_id(
             user_id=user_id,
         )
@@ -59,7 +62,17 @@ class UserService:
             user.encrypted_password,
         )
         await self.__obis_service.login(user.student_number, plain_password)
-        return await self.__obis_service.get_lessons_attendance()
+        lessons_attendance_parse_result = await self.__obis_service.get_lessons_attendance()
+        return [
+            LessonAttendance(
+                user_id=user_id,
+                lesson_name=lesson.lesson_name,
+                lesson_code=lesson.lesson_code,
+                theory_skips_percentage=lesson.theory_skips_percentage,
+                practice_skips_percentage=lesson.practice_skips_percentage,
+            )
+            for lesson in lessons_attendance_parse_result
+        ]
 
     async def get_users_with_credentials(self) -> list[User]:
         return await self.__user_repository.get_users_with_credentials()
