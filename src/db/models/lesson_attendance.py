@@ -1,7 +1,7 @@
 import datetime
 
 from sqlalchemy import ForeignKey, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.models.base import Base
 
@@ -28,6 +28,11 @@ class LessonAttendance(Base):
     practice_skips_percentage: Mapped[float | None]
     created_at: Mapped[datetime.datetime] = mapped_column(
         server_default=func.now(),
+    )
+
+    lesson: Mapped['Lesson'] = relationship(
+        'Lesson',
+        back_populates='attendances',
     )
 
     def __repr__(self):

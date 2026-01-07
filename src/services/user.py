@@ -1,5 +1,9 @@
+from collections.abc import Iterable
+
 from exceptions.user import UserHasNoCredentialsError
-from models.obis import LessonExams, LessonAttendance
+from models.obis import LessonExams, LessonAttendance, LessonAttendanceChange
+from models.user import User
+from repositories.lesson_attendance import LessonAttendanceRepository
 from repositories.user import UserRepository
 from services.crypto import PasswordCryptor
 from services.obis import ObisService
@@ -12,10 +16,12 @@ class UserService:
         user_repository: UserRepository,
         password_cryptor: PasswordCryptor,
         obis_service: ObisService,
+        lesson_attendance_repository: LessonAttendanceRepository,
     ):
         self.__user_repository = user_repository
         self.__password_cryptor = password_cryptor
         self.__obis_service = obis_service
+        self.__lesson_attendance_repository = lesson_attendance_repository
 
     async def update_user_credentials(
         self,
@@ -54,3 +60,41 @@ class UserService:
         )
         await self.__obis_service.login(user.student_number, plain_password)
         return await self.__obis_service.get_lessons_attendance()
+
+    async def get_users_with_credentials(self) -> list[User]:
+        return await self.__user_repository.get_users_with_credentials()
+
+    async def get_attendance_changes(
+        self,
+        *,
+        user_id: int,
+    ) -> list[LessonAttendanceChange]:
+        lessons_attendance = await self.get_attendance(user_id)
+        changed_attendances: list[LessonAttendanceChange] = []
+        for lesson_attendance in lessons_attendance:
+            last_attendance = await self.__lesson_attendance_repository.get_last_attendance(
+                user_id=user_id,
+                lesson_code=lesson_attendance.lesson_code,
+            )
+            no_history = last_attendance is None
+            attendance_changed = last_attendance != lesson_attendance
+            if no_history or attendance_changed:
+                changed_attendances.append(
+                    LessonAttendanceChange(
+                        previous=last_attendance,
+                        current=lesson_attendance,
+                    ),
+                )
+        return changed_attendances
+
+    async def save_attendance_change(
+        self,
+        attendance_change: LessonAttendanceChange,
+    ) -> None:
+        current_attendance = attendance_change.current
+        await self.__lesson_attendance_repository.create_attendance(
+            user_id=current_attendance.user_id,
+            lesson_code=current_attendance.lesson_code,
+            theory_skips_percentage=current_attendance.theory_skips_percentage,
+            practice_skips_percentage=current_attendance.practice_skips_percentage,
+        )

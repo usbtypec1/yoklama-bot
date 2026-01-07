@@ -3,6 +3,9 @@ import sys
 
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 from dishka import make_async_container
 from dishka.integrations.aiogram import setup_dishka
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -10,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from db.models.base import Base
 from handlers import router
 from logger import setup_logging
+from periodic_tasks import LessonAttendanceCheckTask
 from setup.ioc.registry import get_providers
 from setup.settings.app import AppSettings
 
@@ -35,6 +39,13 @@ async def main() -> None:
             BotCommand(command="start", description="📲 Главное меню")
         ],
     )
+
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(
+        LessonAttendanceCheckTask(container).execute,
+        IntervalTrigger(minutes=5),
+    )
+    scheduler.start()
 
     dispatcher = Dispatcher()
     dispatcher.include_router(router)

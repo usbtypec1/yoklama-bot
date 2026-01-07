@@ -1,7 +1,11 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
-from db.models.lesson_attendance import LessonAttendance
+from db.models.lesson import Lesson
+from db.models.lesson_attendance import LessonAttendance as DatabaseLessonAttendance
+from models.obis import LessonAttendance
+
 
 
 class LessonAttendanceRepository:
@@ -17,7 +21,7 @@ class LessonAttendanceRepository:
         theory_skips_percentage: float,
         practice_skips_percentage: float,
     ) -> None:
-        attendance = LessonAttendance(
+        attendance = DatabaseLessonAttendance(
             lesson_code=lesson_code,
             user_id=user_id,
             theory_skips_percentage=theory_skips_percentage,
@@ -32,11 +36,23 @@ class LessonAttendanceRepository:
         user_id: int,
     ) -> LessonAttendance | None:
         statement = (
-            select(LessonAttendance)
-            .where(LessonAttendance.lesson_code == lesson_code, LessonAttendance.user_id == user_id)
-            .order_by(LessonAttendance.created_at.desc())
+            select(DatabaseLessonAttendance)
+            .where(
+                DatabaseLessonAttendance.lesson_code == lesson_code,
+                DatabaseLessonAttendance.user_id == user_id,
+            )
+            .options(joinedload(Lesson))
+            .order_by(DatabaseLessonAttendance.created_at.desc())
             .limit(1)
         )
         result = await self.__session.execute(statement)
         attendance = result.scalar_one_or_none()
-        return attendance
+        if attendance is None:
+            return None
+        return LessonAttendance(
+            user_id=attendance.user_id,
+            lesson_name=attendance.lesson.name,
+            lesson_code=attendance.lesson_code,
+            theory_skips_percentage=attendance.theory_skips_percentage,
+            practice_skips_percentage=attendance.practice_skips_percentage,
+        )

@@ -1,7 +1,7 @@
 import datetime
 
 from sqlalchemy import func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.models.base import Base
 
@@ -13,6 +13,11 @@ class Lesson(Base):
     name: Mapped[str]
     created_at: Mapped[datetime.datetime] = mapped_column(
         server_default=func.now(),
+    )
+
+    attendances: Mapped[list["LessonAttendance"]] = relationship(
+        'LessonAttendance',
+        back_populates='lesson',
     )
 
     def __repr__(self):
