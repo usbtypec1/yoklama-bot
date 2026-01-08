@@ -3,7 +3,7 @@ import datetime
 from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from db.models.base import Base
+from .base import Base
 
 
 class LessonAttendance(Base):
