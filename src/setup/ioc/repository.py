@@ -2,6 +2,7 @@ from dishka import Provider, Scope
 
 from repositories.lesson import LessonRepository
 from repositories.lesson_attendance import LessonAttendanceRepository
+from repositories.lesson_grade import LessonGradeRepository
 from repositories.user import UserRepository
 
 
@@ -18,5 +19,9 @@ def repository_provider() -> Provider:
     provider.provide(
         scope=Scope.REQUEST,
         source=LessonAttendanceRepository,
+    )
+    provider.provide(
+        scope=Scope.REQUEST,
+        source=LessonGradeRepository,
     )
     return provider

@@ -2,12 +2,14 @@ from exceptions.user import (
     UserHasNoCredentialsError,
     UserNotAcceptedTermsError,
 )
+from models.lesson_grade import LessonGradeChange
 from models.obis import (
     LessonExams, LessonAttendance, LessonAttendanceChange,
 )
 from models.user import User
 from repositories.lesson import LessonRepository
 from repositories.lesson_attendance import LessonAttendanceRepository
+from repositories.lesson_grade import LessonGradeRepository
 from repositories.user import UserRepository
 from services.crypto import PasswordCryptor
 from services.obis import ObisService
@@ -22,12 +24,14 @@ class UserService:
         obis_service: ObisService,
         lesson_attendance_repository: LessonAttendanceRepository,
         lesson_repository: LessonRepository,
+        lesson_grade_repository: LessonGradeRepository,
     ):
         self.__user_repository = user_repository
         self.__password_cryptor = password_cryptor
         self.__obis_service = obis_service
         self.__lesson_attendance_repository = lesson_attendance_repository
         self.__lesson_repository = lesson_repository
+        self.__lesson_grade_repository = lesson_grade_repository
 
     async def save_user(
         self,
@@ -84,8 +88,8 @@ class UserService:
             for lesson in lessons_attendance_parse_result
         ]
 
-    async def get_users_with_credentials(self) -> list[User]:
-        return await self.__user_repository.get_users_with_credentials()
+    async def get_users(self) -> list[User]:
+        return await self.__user_repository.get_users()
 
     async def get_attendance_changes(
         self,
@@ -128,3 +132,44 @@ class UserService:
 
     async def accept_terms(self, user_id: int) -> None:
         await self.__user_repository.accept_terms(user_id)
+
+    async def get_lesson_grade_changes(
+        self,
+        *,
+        user_id: int,
+    ) -> list[LessonGradeChange]:
+        lessons_exams = await self.get_exams(user_id)
+        changes: list[LessonGradeChange] = []
+        for lesson_exams in lessons_exams:
+            for exam in lesson_exams.exams:
+                last_grade = await self.__lesson_grade_repository.get_last_grade(
+                    lesson_code=lesson_exams.lesson_code,
+                    user_id=user_id,
+                    exam_name=exam.name,
+                )
+                is_first_grade = last_grade is None
+                score_changed = last_grade is not None and last_grade.score != exam.score
+                if is_first_grade or score_changed:
+                    change = LessonGradeChange(
+                        user_id=user_id,
+                        lesson_code=lesson_exams.lesson_code,
+                        lesson_name=lesson_exams.lesson_name,
+                        exam_name=exam.name,
+                        previous_score=last_grade.score if last_grade else None,
+                        current_score=exam.score,
+                        is_first_grade=is_first_grade,
+                    )
+                    changes.append(change)
+        return changes
+
+    async def save_grade_change(self, grade_change: LessonGradeChange) -> None:
+        await self.__lesson_repository.create_lesson(
+            code=grade_change.lesson_code,
+            name=grade_change.lesson_name,
+        )
+        await self.__lesson_grade_repository.create_grade(
+            user_id=grade_change.user_id,
+            lesson_code=grade_change.lesson_code,
+            exam_name=grade_change.exam_name,
+            score=grade_change.current_score,
+        )

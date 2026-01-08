@@ -1,1 +1,1 @@
-from . import user, lesson, lesson_attendance
+from . import user, lesson, lesson_attendance, lesson_grade
