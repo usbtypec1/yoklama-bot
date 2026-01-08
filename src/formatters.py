@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 
+from models.lesson_grade import LessonGradeChange
 from models.obis import LessonAttendance, LessonSkipOpportunity, LessonExams
 from services.obis import compute_lesson_skip_opportunities
 
@@ -32,7 +33,7 @@ def format_exams_list(lessons_exams: Iterable[LessonExams]) -> str:
         lesson_lines = [
             f"<b>{lesson_exams.lesson_name} ({lesson_exams.lesson_code})</b>"]
         for exam in lesson_exams.exams:
-            lesson_lines.append(f" - {exam.name}: {exam.score or '-'}")
+            lesson_lines.append(f" - {exam.name}: {format_none(exam.score)}")
         lines.append("\n".join(lesson_lines))
 
     if not lines:
@@ -60,3 +61,20 @@ def format_attendance_list(lessons_attendance: Iterable[LessonAttendance]) -> st
     if not lines:
         return "У вас нет предметов."
     return "\n\n".join(lines)
+
+
+def format_none(value: str | None) -> str:
+    return value if value is not None else "-"
+
+
+def format_lesson_grade_change(
+    lesson_grade_change: LessonGradeChange,
+) -> str:
+    if lesson_grade_change.is_first_grade:
+        return (
+            f"Новая оценка по предмету: {lesson_grade_change.lesson_name} - {format_none(lesson_grade_change.current_score)}"
+        )
+    return (
+        f"Ваша оценка по предмету {lesson_grade_change.lesson_name} изменилась: "
+        f"{format_none(lesson_grade_change.previous_score)} → {format_none(lesson_grade_change.current_score)}"
+    )

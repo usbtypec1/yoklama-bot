@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from db.models.base import Base
 from handlers import router
 from logger import setup_logging
-from periodic_tasks import LessonAttendanceCheckTask
+from periodic_tasks import LessonAttendanceCheckTask, LessonGradeSyncTask
 from setup.ioc.registry import get_providers
 from setup.settings.app import AppSettings
 
@@ -24,10 +24,6 @@ async def main() -> None:
             AppSettings: settings,
         },
     )
-
-    engine = await container.get(AsyncEngine)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 
     bot = await container.get(Bot)
 
@@ -43,6 +39,10 @@ async def main() -> None:
     scheduler.add_job(
         LessonAttendanceCheckTask(container).execute,
         IntervalTrigger(minutes=5),
+    )
+    scheduler.add_job(
+        LessonGradeSyncTask(container).execute,
+        IntervalTrigger(minutes=30),
     )
     scheduler.start()
 

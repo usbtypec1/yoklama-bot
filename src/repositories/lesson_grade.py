@@ -30,12 +30,14 @@ class LessonGradeRepository:
         self,
         lesson_code: str,
         user_id: int,
+        exam_name: str,
     ) -> LessonGrade | None:
         statement = (
             select(DatabaseLessonGrade)
             .where(
                 DatabaseLessonGrade.lesson_code == lesson_code,
                 DatabaseLessonGrade.user_id == user_id,
+                DatabaseLessonGrade.exam_name == exam_name,
             )
             .order_by(DatabaseLessonGrade.created_at.desc())
             .limit(1)

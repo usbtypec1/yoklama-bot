@@ -145,9 +145,10 @@ class UserService:
                 last_grade = await self.__lesson_grade_repository.get_last_grade(
                     lesson_code=lesson_exams.lesson_code,
                     user_id=user_id,
+                    exam_name=exam.name,
                 )
                 is_first_grade = last_grade is None
-                score_changed = last_grade.score != exam.score
+                score_changed = last_grade is not None and last_grade.score != exam.score
                 if is_first_grade or score_changed:
                     change = LessonGradeChange(
                         user_id=user_id,

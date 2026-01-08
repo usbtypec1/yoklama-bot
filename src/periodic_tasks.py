@@ -5,7 +5,10 @@ from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
 from dishka import AsyncContainer
 
-from formatters import format_lesson_attendance_change
+from formatters import (
+    format_lesson_attendance_change,
+    format_lesson_grade_change,
+)
 from models.user import User
 from services.obis import compute_lesson_skip_opportunities
 from services.user import UserService
@@ -19,19 +22,38 @@ class LessonGradeSyncTask:
     def __init__(self, container: AsyncContainer):
         self.__container = container
 
-    async def _process_user(self, user: User, user_service: UserService) -> None:
+    async def _process_user(self, user: User, user_service: UserService, bot: Bot) -> None:
         grade_changes = await user_service.get_lesson_grade_changes(user_id=user.id)
         for grade_change in grade_changes:
-            await user_service.save_grade_change(grade_change)
+            logger.info("Processing grade change for user %s", user.id)
+
+            text = format_lesson_grade_change(grade_change)
+            try:
+                await bot.send_message(
+                    chat_id=user.id,
+                    text=text,
+                )
+            except TelegramAPIError:
+                logger.error(
+                    "Could not send attendance change to user %s", user.id,
+                )
+            else:
+                await user_service.save_grade_change(grade_change)
+                logger.info(
+                    "Successfully sent attendance change to user %s", user.id,
+                )
+            finally:
+                await asyncio.sleep(0.1)
 
     async def execute(self) -> None:
+        bot = await self.__container.get(Bot)
         async with self.__container() as nested_container:
             user_service = await nested_container.get(UserService)
             users = await user_service.get_users()
 
             for user in users:
                 try:
-                    await self._process_user(user, user_service)
+                    await self._process_user(user, user_service, bot)
                 except Exception as e:
                     logger.exception("Error processing user %s: %s", user.id, e)
 
