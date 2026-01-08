@@ -54,8 +54,8 @@ def format_attendance_list(lessons_attendance: Iterable[LessonAttendance]) -> st
 
         lines.append(
             f"{lesson_name}\n"
-            f"Теория: {lesson_attendance.theory_skips_percentage}% (осталось {skipping.theory} пропусков)\n"
-            f"Практика: {lesson_attendance.practice_skips_percentage}% (осталось {skipping.practice} пропусков)"
+            f"Теория: {lesson_attendance.theory_skips_percentage}% (осталось {skipping.theory} {inflect_word_skips(skipping.theory)}\n"
+            f"Практика: {lesson_attendance.practice_skips_percentage}% (осталось {skipping.practice} {inflect_word_skips(skipping.practice)})"
         )
 
     if not lines:
