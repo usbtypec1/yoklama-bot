@@ -19,6 +19,10 @@ class Lesson(Base):
         'LessonAttendance',
         back_populates='lesson',
     )
+    grades: Mapped[list["LessonGrade"]] = relationship(
+        'LessonGrade',
+        back_populates='lesson',
+    )
 
     def __repr__(self):
         return (
