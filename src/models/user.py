@@ -1,7 +1,8 @@
 from pydantic import BaseModel
 
 
-class UserWithCredentials(BaseModel):
+class User(BaseModel):
     id: int
     student_number: str
     encrypted_password: str
+    has_accepted_terms: bool

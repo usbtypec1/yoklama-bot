@@ -7,9 +7,13 @@ requires-python = ">=3.13"
 dependencies = [
     "aiogram>=3.22.0",
     "aiosqlite>=0.21.0",
+    "alembic>=1.17.2",
     "apscheduler>=3.11.1",
     "bs4>=0.0.2",
     "cryptography>=46.0.3",
+    "dishka>=1.7.2",
     "httpx>=0.28.1",
     "lxml>=6.0.2",
+    "psycopg[binary]>=3.3.2",
+    "sqlalchemy[asyncio]>=2.0.45",
 ]

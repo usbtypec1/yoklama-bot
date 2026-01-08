@@ -1,10 +1,16 @@
+from typing import NewType
+
+from pydantic import SecretStr
 from cryptography.fernet import Fernet
+
+
+CryptographySecretKey = NewType("CryptographySecretKey", SecretStr)
 
 
 class PasswordCryptor:
 
-    def __init__(self, secret_key: str):
-        self.__fernet = Fernet(secret_key)
+    def __init__(self, secret_key: CryptographySecretKey):
+        self.__fernet = Fernet(secret_key.get_secret_value())
 
     def encrypt(self, plain_text: str) -> str:
         return self.__fernet.encrypt(
