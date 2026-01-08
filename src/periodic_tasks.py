@@ -14,6 +14,28 @@ from services.user import UserService
 logger = logging.getLogger(__name__)
 
 
+class LessonGradeSyncTask:
+
+    def __init__(self, container: AsyncContainer):
+        self.__container = container
+
+    async def _process_user(self, user: User, user_service: UserService) -> None:
+        grade_changes = await user_service.get_lesson_grade_changes(user_id=user.id)
+        for grade_change in grade_changes:
+            await user_service.save_grade_change(grade_change)
+
+    async def execute(self) -> None:
+        async with self.__container() as nested_container:
+            user_service = await nested_container.get(UserService)
+            users = await user_service.get_users()
+
+            for user in users:
+                try:
+                    await self._process_user(user, user_service)
+                except Exception as e:
+                    logger.exception("Error processing user %s: %s", user.id, e)
+
+
 class LessonAttendanceCheckTask:
 
     def __init__(self, container: AsyncContainer):
@@ -63,7 +85,7 @@ class LessonAttendanceCheckTask:
         bot = await self.__container.get(Bot)
         async with self.__container() as nested_container:
             user_service = await nested_container.get(UserService)
-            users = await user_service.get_users_with_credentials()
+            users = await user_service.get_users()
 
             for user in users:
                 try:

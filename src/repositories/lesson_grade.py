@@ -48,6 +48,6 @@ class LessonGradeRepository:
             user_id=result.user_id,
             lesson_code=result.lesson_code,
             exam_name=result.exam_name,
-            grade=result.score,
+            score=result.score,
             created_at=result.created_at,
         )

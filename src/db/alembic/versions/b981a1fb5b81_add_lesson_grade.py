@@ -1,4 +1,4 @@
-"""add lesson grade
+"""add lesson score
 
 Revision ID: b981a1fb5b81
 Revises: 5ac471d9afc1
